@@ -7,22 +7,29 @@ using System.Threading.Tasks;
 
 namespace HelloTaskApp
 {
-    interface IWorker
+    public interface IWorker
     {
         void Start();
-        void Stop();
+        Task Stop();
     }
 
     class Worker : IWorker
     {
+        private readonly int _id;
         private readonly IPrinter _printer;
-        private int _id = -1;
-        private CancellationTokenSource _cts;
+        private readonly IRandomGenerator _random;
+        private Config _config;
+        
 
-        public Worker(int id, IPrinter printer)
+        private CancellationTokenSource _cts;
+        private Task _workerTask;
+
+        public Worker(int id, IPrinter printer, IRandomGenerator random, Config config)
         {
             _id = id;
-            _printer = printer;
+            _printer = printer ?? throw new ArgumentNullException(nameof(printer)); ;
+            _random = random ?? throw new ArgumentNullException(nameof(random));
+            _config = config ?? throw new ArgumentNullException(nameof(config));
         }
         public override string ToString()
         {
@@ -30,24 +37,28 @@ namespace HelloTaskApp
         }
         public void Start()
         {
-            this._cts = new CancellationTokenSource();
-            Task.Run(
+            _cts = new CancellationTokenSource();
+            _workerTask = Task.Run(
                 async () =>
                 {
                     _cts.Token.ThrowIfCancellationRequested();
                     while (true)
                     {
-                        _printer.Print($"[{DateTime.Now:G}]:Worker #{_id} is working. Tread id {Thread.CurrentThread.ManagedThreadId:D5} ...", 0, _id, ConsoleColor.Magenta);
-                        await Task.Delay(300);
+                        if (_id < _config.maxShow)
+                        {
+                            _printer.Print($"[{DateTime.Now:G}]:Hello from #{_id}! Tread id {Thread.CurrentThread.ManagedThreadId:D5} ...", 0, _id, ConsoleColor.Magenta);
+                        }
+                        await Task.Delay((int)(_random.GetRandom() * _config.maxWorkerDelay));
                         _cts.Token.ThrowIfCancellationRequested();
                     }
                 },
                 _cts.Token);
             return;
         }
-        public void Stop()
+        public Task Stop()
         {
             _cts.Cancel();
+            return _workerTask;
         }
     }
 }
