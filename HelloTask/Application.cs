@@ -29,7 +29,7 @@ namespace HelloTaskApp
             _workers = MakeWorkers().ToArray();
         }
 
-        public void Run()
+        public async Task RunAsync()
         {
             _printer.Print("Press anykey to start workers...", y: _config.quantity, color: ConsoleColor.Yellow);
             Console.ReadKey();
@@ -37,32 +37,14 @@ namespace HelloTaskApp
             {
                 w.Start();
             }
-            _printer.Print("Workers is working, press anykey to stop them.", y: _config.quantity, color: ConsoleColor.Yellow);
+            _printer.Print("Workers are working, press anykey to stop them.", y: _config.quantity, color: ConsoleColor.Yellow);
             Console.ReadKey();
 
-            var wt = _workers.Select(w => w.Stop()).ToArray();
+            var wt = _workers.Select(w => w.StopAsync()).ToArray();
             _printer.Print("Waiting to stop all workers...                 ", y: _config.quantity, color: ConsoleColor.Red);
-            try
-            {
-                Task.WaitAll(wt);
-            }
-            catch (AggregateException e)
-            {
-                if (!e.InnerExceptions.All((ex)=>ex is TaskCanceledException))
-                {
-                    throw;
-                }
-                //Do nothing
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            finally
-            {
-                _printer.Print("Workers is stopped, press anykey to exit program!", y: _config.quantity, color: ConsoleColor.Green);
-                Console.ReadKey();
-            }
+            await Task.WhenAll(wt);
+            _printer.Print("Workers are stopped, press anykey to exit program!", y: _config.quantity, color: ConsoleColor.Green);
+            Console.ReadKey();
         }
     }
 }

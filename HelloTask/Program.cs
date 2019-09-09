@@ -10,14 +10,14 @@ namespace HelloTaskApp
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main()
         {
             var builder = new ContainerBuilder();
             builder.RegisterModule(new MainModule());
             using (var container = builder.Build())
             {
                 var application = container.Resolve<Application>();
-                application.Run();
+                await application.RunAsync();
             }
         }
     }
